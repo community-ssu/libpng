@@ -1,0 +1,58 @@
+Source: libpng
+Section: libs
+Priority: optional
+Maintainer: Ludek Finstrle <luf@pzkagis.cz>
+XSBC-Original-Maintainer: Anibal Monsalve Salazar <anibal@debian.org>
+Build-Depends: debhelper (>= 5), libtool, automake, autoconf, quilt (>= 0.40), zlib1g-dev, mawk
+Standards-Version: 3.8.0
+Homepage: http://libpng.org/pub/png/libpng.html
+
+Package: libpng12-0
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Conflicts: libpng12-dev (<= 1.2.8rel-7), mzscheme (<= 1:209-5), pngcrush (<= 1.5.10-2), pngmeta (<= 1.11-3), qemacs (<= 0.3.1-5), povray-3.5 (<= 3.5.0c-10)
+Replaces: libpng12-dev (<= 1.2.8rel-7)
+Pre-Depends: ${misc:Pre-Depends}
+Description: PNG library - runtime
+ libpng is a library implementing an interface for reading and writing
+ PNG (Portable Network Graphics) format files.
+ .
+ This package contains the runtime library files needed to run software
+ using libpng.
+
+Package: libpng12-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, libpng12-0 (= ${binary:Version}), zlib1g-dev
+Conflicts: libpng2-dev, libpng-dev, libpng12-0-dev, libpng2 (<< 1.0.12-3)
+Provides: libpng-dev, libpng12-0-dev, libpng3-dev
+Replaces: libpng3-dev (<= 1.2.5), libpng12-0-dev
+Description: PNG library - development
+ libpng is a library implementing an interface for reading and writing
+ PNG (Portable Network Graphics) format files.
+ .
+ This package contains the header and development files needed to build
+ programs and packages using libpng.
+
+Package: libpng12-0-dbg
+Section: libdevel
+Architecture: any
+Priority: extra
+Depends: ${misc:Depends}, libpng12-0 (= ${binary:Version})
+Description: PNG library - debug symbols
+ libpng is a library implementing an interface for reading and writing
+ PNG (Portable Network Graphics) format files.
+ .
+ This package contains debugging symbols for libpng.
+
+Package: libpng3
+Section: oldlibs
+Architecture: all
+Depends: ${misc:Depends}, libpng12-0 (>= 1.2.5.0-2)
+Description: PNG library - runtime
+ libpng is a library implementing an interface for reading and writing
+ PNG (Portable Network Graphics) format files.
+ .
+ This package is superseded by libpng12-0, and is provided only for
+ transitional purposes.

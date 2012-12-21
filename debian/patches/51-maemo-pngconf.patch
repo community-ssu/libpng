@@ -1,0 +1,21 @@
+diff -ur a/pngconf.h b/pngconf.h
+--- a/pngconf.h	2012-12-20 19:26:35.682027000 -0500
++++ b/pngconf.h	2012-12-20 19:25:49.626029000 -0500
+@@ -526,6 +526,9 @@
+  * will be turned on by default in libpng-1.4.0.
+  */
+ 
++/* Turning on for maemo, as per tracker developers request. */
++
++#ifdef NO_MAEMO  
+ #if defined(PNG_1_0_X) || defined (PNG_1_2_X)
+ #  ifndef PNG_NO_iTXt_SUPPORTED
+ #    define PNG_NO_iTXt_SUPPORTED
+@@ -537,6 +540,7 @@
+ #    define PNG_NO_WRITE_iTXt
+ #  endif
+ #endif
++#endif
+ 
+ #if !defined(PNG_NO_iTXt_SUPPORTED)
+ #  if !defined(PNG_READ_iTXt_SUPPORTED) && !defined(PNG_NO_READ_iTXt)
