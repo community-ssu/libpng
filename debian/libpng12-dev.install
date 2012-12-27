@@ -1,4 +1,4 @@
 usr/include
 usr/lib/pkgconfig
-usr/lib/{libpng.a,libpng12.a,libpng.so,libpng12.so}
+usr/lib/{libpng12.a,libpng.so,libpng12.so}
 usr/bin
