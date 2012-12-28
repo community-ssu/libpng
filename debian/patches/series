@@ -1,2 +1,3 @@
 01-legacy.patch
 51-maemo-pngconf.patch
+52-maemo-read_filter-neon.patch
