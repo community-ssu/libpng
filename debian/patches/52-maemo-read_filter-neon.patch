@@ -1,7 +1,7 @@
 Index: libpng/Makefile.am
 ===================================================================
---- libpng.orig/Makefile.am	2012-12-29 21:37:00.000000000 +0200
-+++ libpng/Makefile.am	2012-12-29 21:38:22.000000000 +0200
+--- libpng.orig/Makefile.am	2012-12-30 19:20:04.000000000 +0200
++++ libpng/Makefile.am	2012-12-30 19:22:29.000000000 +0200
 @@ -34,7 +34,8 @@
  libpng12_la_SOURCES = png.c pngset.c pngget.c pngrutil.c pngtrans.c pngwutil.c \
  	pngread.c pngrio.c pngwio.c pngwrite.c pngrtran.c \
@@ -14,8 +14,8 @@ Index: libpng/Makefile.am
  libpng_la_CPPFLAGS = @LIBPNG_DEFINES@
 Index: libpng/configure.ac
 ===================================================================
---- libpng.orig/configure.ac	2012-12-29 21:37:00.000000000 +0200
-+++ libpng/configure.ac	2012-12-29 21:38:22.000000000 +0200
+--- libpng.orig/configure.ac	2012-12-30 19:20:04.000000000 +0200
++++ libpng/configure.ac	2012-12-30 19:22:29.000000000 +0200
 @@ -33,6 +33,8 @@
  AC_CONFIG_SRCDIR([pngget.c])
  AM_CONFIG_HEADER(config.h)
@@ -28,7 +28,7 @@ Index: libpng/configure.ac
 Index: libpng/png_read_filter_row_neon.S
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ libpng/png_read_filter_row_neon.S	2012-12-29 18:33:52.000000000 +0200
++++ libpng/png_read_filter_row_neon.S	2012-12-30 19:22:29.000000000 +0200
 @@ -0,0 +1,219 @@
 +/* filter_neon.S - NEON optimised filter functions
 + *
@@ -251,14 +251,13 @@ Index: libpng/png_read_filter_row_neon.S
 +endfunc
 Index: libpng/pngrutil.c
 ===================================================================
---- libpng.orig/pngrutil.c	2012-12-29 21:37:00.000000000 +0200
-+++ libpng/pngrutil.c	2012-12-29 22:06:05.000000000 +0200
-@@ -23,6 +23,32 @@
+--- libpng.orig/pngrutil.c	2012-12-30 19:20:04.000000000 +0200
++++ libpng/pngrutil.c	2012-12-30 19:23:58.000000000 +0200
+@@ -23,6 +23,33 @@
  #  define WIN32_WCE_OLD
  #endif
  
 +#if defined(__ARM_NEON__)
-+extern void png_read_filter_row_neon(png_uint_32 rowbytes, png_byte pixel_depth, png_bytep row, png_bytep prev_row, int filter);
 +PNG_EXTERN void png_read_filter_row_up_neon PNGARG((png_row_infop row_info,
 +    png_bytep row, png_bytep prev_row));
 +PNG_EXTERN void png_read_filter_row_sub3_neon PNGARG((png_row_infop row_info,
@@ -274,11 +273,13 @@ Index: libpng/pngrutil.c
 +PNG_EXTERN void png_read_filter_row_paeth4_neon PNGARG((png_row_infop row_info,
 +    png_bytep row, png_bytep prev_row));
 +
-+static png_bytep align16(png_bytep row_buf)
++/* Return address which is aligned on 16 bytes and is padded with at least 32 bytes from the start */
++png_bytep
++align16(png_bytep row_buf)
 +{
-+   png_bytep temp = row_buf + 16;
++   png_bytep temp = row_buf + 32;
 +   int extra = (int)((temp - (png_bytep)0) & 0xf);
-+   return temp - extra - 1/*filter byte*/;
++   return temp - extra - 1;
 +}
 +
 +#endif
@@ -286,7 +287,7 @@ Index: libpng/pngrutil.c
  #ifdef PNG_FLOATING_POINT_SUPPORTED
  #  ifdef WIN32_WCE_OLD
  /* The strtod() function is not supported on WindowsCE */
-@@ -2926,120 +2952,191 @@
+@@ -2926,120 +2953,192 @@
  }
  #endif /* PNG_READ_INTERLACING_SUPPORTED */
  
@@ -404,12 +405,14 @@ Index: libpng/pngrutil.c
 +      rp++;
 +   }
 +}
++
  void /* PRIVATE */
  png_read_filter_row(png_structp png_ptr, png_row_infop row_info, png_bytep row,
     png_bytep prev_row, int filter)
  {
++#if defined(__ARM_NEON__)
 +   unsigned int bpp = (png_ptr->pixel_depth + 7) >> 3;
-+
++#endif
     png_debug(1, "in png_read_filter_row");
     png_debug2(2, "row = %lu, filter = %d", png_ptr->row_number, filter);
 +
@@ -424,20 +427,19 @@ Index: libpng/pngrutil.c
 -         png_uint_32 bpp = (row_info->pixel_depth + 7) >> 3;
 -         png_bytep rp = row + bpp;
 -         png_bytep lp = row;
-+#if defined(__ARM_NEON__)
- 
+-
 -         for (i = bpp; i < istop; i++)
 -         {
 -            *rp = (png_byte)(((int)(*rp) + (int)(*lp++)) & 0xff);
 -            rp++;
 -         }
-+         if (bpp == 3)
-+            png_read_filter_row_sub3_neon(row_info, row, prev_row);
-+         else if (bpp == 4)
-+               png_read_filter_row_sub4_neon(row_info, row, prev_row);
-+         else
-+            png_read_filter_row_sub(row_info, row, prev_row);
-+
++#if defined(__ARM_NEON__)
++      if (bpp == 3)
++         png_read_filter_row_sub3_neon(row_info, row, prev_row);
++      else if (bpp == 4)
++         png_read_filter_row_sub4_neon(row_info, row, prev_row);
++      else
++         png_read_filter_row_sub(row_info, row, prev_row);
 +#else
 +         png_read_filter_row_sub(row_info, row, prev_row);
 +#endif
@@ -450,7 +452,12 @@ Index: libpng/pngrutil.c
 -         png_bytep rp = row;
 -         png_bytep pp = prev_row;
 +#if defined(__ARM_NEON__)
-+         png_read_filter_row_up_neon(row_info, row, prev_row);
++         if (bpp == 3)
++            png_read_filter_row_up_neon(row_info, row, prev_row);
++         else if (bpp == 4)
++            png_read_filter_row_up_neon(row_info, row, prev_row);
++         else
++            png_read_filter_row_up(row_info, row, prev_row);
  
 -         for (i = 0; i < istop; i++)
 -         {
@@ -470,15 +477,14 @@ Index: libpng/pngrutil.c
 -         png_bytep lp = row;
 -         png_uint_32 bpp = (row_info->pixel_depth + 7) >> 3;
 -         png_uint_32 istop = row_info->rowbytes - bpp;
-+#if defined(__ARM_NEON__)
-+         unsigned int bpp = (png_ptr->pixel_depth + 7) >> 3;
- 
+-
 -         for (i = 0; i < bpp; i++)
 -         {
 -            *rp = (png_byte)(((int)(*rp) +
 -               ((int)(*pp++) / 2 )) & 0xff);
 -            rp++;
 -         }
++#if defined(__ARM_NEON__)
 +         if (bpp == 3)
 +            png_read_filter_row_avg3_neon(row_info, row, prev_row);
 +         else if (bpp == 4)
@@ -520,11 +526,10 @@ Index: libpng/pngrutil.c
 -            a = *lp++;
 -            b = *pp++;
 -            c = *cp++;
-+#if defined(__ARM_NEON__)
-+         unsigned int bpp = (png_ptr->pixel_depth + 7) >> 3;
- 
+-
 -            p = b - c;
 -            pc = a - c;
++#if defined(__ARM_NEON__)
 +         if (bpp == 3)
 +            png_read_filter_row_paeth3_neon(row_info, row, prev_row);
 +         else if (bpp == 4)
@@ -560,18 +565,44 @@ Index: libpng/pngrutil.c
           break;
        }
        default:
-@@ -3339,6 +3436,7 @@
+@@ -3078,7 +3177,7 @@
+    if (png_ptr->interlaced)
+    {
+       png_ptr->row_number = 0;
+-      png_memset_check(png_ptr, png_ptr->prev_row, 0,
++      png_memset_check(png_ptr, align16(png_ptr->prev_row), 0,
+          png_ptr->rowbytes + 1);
+       do
+       {
+@@ -3334,6 +3433,7 @@
+     */
+    row_bytes = PNG_ROWBYTES(max_pixel_depth, row_bytes) +
+       1 + ((max_pixel_depth + 7) >> 3);
++
+ #ifdef PNG_MAX_MALLOC_64K
+    if (row_bytes > (png_uint_32)65536L)
        png_error(png_ptr, "This image requires a row greater than 64KB");
- #endif
- 
-+   row_bytes+=64;
+@@ -3342,35 +3442,48 @@
     if (row_bytes + 64 > png_ptr->old_big_row_buf_size)
     {
       png_free(png_ptr, png_ptr->big_row_buf);
-@@ -3370,6 +3468,19 @@
-       png_memset_check(png_ptr, png_ptr->prev_row, 0, row_bytes + 1);
-       png_ptr->old_prev_row_size = row_bytes + 1;
-    }
++     png_free(png_ptr, png_ptr->prev_row);
++
+      if (png_ptr->interlaced)
+         png_ptr->big_row_buf = (png_bytep)png_calloc(png_ptr,
+             row_bytes + 64);
+      else
+         png_ptr->big_row_buf = (png_bytep)png_malloc(png_ptr,
+             row_bytes + 64);
++
+      png_ptr->old_big_row_buf_size = row_bytes + 64;
+ 
++
++     png_ptr->old_prev_row_size = row_bytes + 64;
++     png_ptr->prev_row = (png_bytep)png_malloc(png_ptr, (png_uint_32)(
++       row_bytes + 64));
++     png_memset_check(png_ptr, png_ptr->prev_row, 0, row_bytes + 64);
++
 +#ifdef __ARM_NEON__
 +   /* Use 16-byte aligned memory for row_buf with at least 16 bytes
 +    * of padding before and after row_buf; treat prev_row similarly.
@@ -580,11 +611,275 @@ Index: libpng/pngrutil.c
 +    * was incorrect; the filter byte was aligned, which had the exact
 +    * opposite effect of that intended.
 +    */
-+   {
-+      png_ptr->row_buf = align16(png_ptr->big_row_buf + 16);
-+   }
++
++     png_ptr->row_buf = align16(png_ptr->big_row_buf);
++#else
+      /* Use 32 bytes of padding before and after row_buf. */
+      png_ptr->row_buf = png_ptr->big_row_buf + 32;
+-     png_ptr->old_big_row_buf_size = row_bytes + 64;
 +
 +#endif
++
+    }
  
+ #ifdef PNG_MAX_MALLOC_64K
+-   if ((png_uint_32)row_bytes + 1 > (png_uint_32)65536L)
++   if ((png_uint_32)row_bytes > (png_uint_32)65536L)
+       png_error(png_ptr, "This image requires a row greater than 64KB");
+ #endif
+    if ((png_uint_32)row_bytes > (png_uint_32)(PNG_SIZE_MAX - 1))
+       png_error(png_ptr, "Row has too many bytes to allocate in memory.");
+ 
+-   if (row_bytes + 1 > png_ptr->old_prev_row_size)
+-   {
+-      png_free(png_ptr, png_ptr->prev_row);
+-      png_ptr->prev_row = (png_bytep)png_malloc(png_ptr, (png_uint_32)(
+-        row_bytes + 1));
+-      png_memset_check(png_ptr, png_ptr->prev_row, 0, row_bytes + 1);
+-      png_ptr->old_prev_row_size = row_bytes + 1;
+-   }
+-
     png_ptr->rowbytes = row_bytes;
+ 
+    png_debug1(3, "width = %lu,", png_ptr->width);
+Index: libpng/pngpread.c
+===================================================================
+--- libpng.orig/pngpread.c	2012-12-30 19:20:04.000000000 +0200
++++ libpng/pngpread.c	2012-12-30 19:22:29.000000000 +0200
+@@ -27,6 +27,13 @@
+ #define PNG_READ_iTXt_MODE  7
+ #define PNG_ERROR_MODE      8
+ 
++#if defined(__ARM_NEON__)
++png_bytep
++align16(png_bytep row_buf);
++#else
++#define align16(row_buf) row_buf
++#endif
++
+ void PNGAPI
+ png_process_data(png_structp png_ptr, png_infop info_ptr,
+    png_bytep buffer, png_size_t buffer_size)
+@@ -823,7 +830,7 @@
+     * or the stream marked as finished.
+     */
+    while (png_ptr->zstream.avail_in > 0 &&
+-	  !(png_ptr->flags & PNG_FLAG_ZLIB_FINISHED))
++     !(png_ptr->flags & PNG_FLAG_ZLIB_FINISHED))
+    {
+       int ret;
+ 
+@@ -852,49 +859,49 @@
+       /* Check for any failure before proceeding. */
+       if (ret != Z_OK && ret != Z_STREAM_END)
+       {
+-	 /* Terminate the decompression. */
+-	 png_ptr->flags |= PNG_FLAG_ZLIB_FINISHED;
++    /* Terminate the decompression. */
++    png_ptr->flags |= PNG_FLAG_ZLIB_FINISHED;
+ 
+-         /* This may be a truncated stream (missing or
++			/* This may be a truncated stream (missing or
+ 	  * damaged end code).  Treat that as a warning.
+ 	  */
+-         if (png_ptr->row_number >= png_ptr->num_rows ||
+-	     png_ptr->pass > 6)
+-	    png_warning(png_ptr, "Truncated compressed data in IDAT");
++			if (png_ptr->row_number >= png_ptr->num_rows ||
++		  png_ptr->pass > 6)
++		 png_warning(png_ptr, "Truncated compressed data in IDAT");
+ 	 else
+-	    png_error(png_ptr, "Decompression error in IDAT");
++		 png_error(png_ptr, "Decompression error in IDAT");
+ 
+-	 /* Skip the check on unprocessed input */
++    /* Skip the check on unprocessed input */
+          return;
+       }
+ 
+       /* Did inflate output any data? */
+       if (png_ptr->zstream.next_out != png_ptr->row_buf)
+       {
+-	 /* Is this unexpected data after the last row?
+-	  * If it is, artificially terminate the LZ output
+-	  * here.
+-	  */
++    /* Is this unexpected data after the last row?
++     * If it is, artificially terminate the LZ output
++     * here.
++     */
+          if (png_ptr->row_number >= png_ptr->num_rows ||
+-	     png_ptr->pass > 6)
++        png_ptr->pass > 6)
+          {
+-	    /* Extra data. */
+-	    png_warning(png_ptr, "Extra compressed data in IDAT");
++       /* Extra data. */
++       png_warning(png_ptr, "Extra compressed data in IDAT");
+             png_ptr->flags |= PNG_FLAG_ZLIB_FINISHED;
+-	    /* Do no more processing; skip the unprocessed
+-	     * input check below.
+-	     */
++       /* Do no more processing; skip the unprocessed
++        * input check below.
++        */
+             return;
+-	 }
++    }
+ 
+ 	 /* Do we have a complete row? */
+ 	 if (png_ptr->zstream.avail_out == 0)
+-	    png_push_process_row(png_ptr);
+-      }
++		 png_push_process_row(png_ptr);
++		}
+ 
+       /* And check for the end of the stream. */
+       if (ret == Z_STREAM_END)
+-	 png_ptr->flags |= PNG_FLAG_ZLIB_FINISHED;
++    png_ptr->flags |= PNG_FLAG_ZLIB_FINISHED;
+    }
+ 
+    /* All the data should have been processed, if anything
+@@ -918,10 +925,10 @@
+        png_ptr->row_info.width);
+ 
+    png_read_filter_row(png_ptr, &(png_ptr->row_info),
+-       png_ptr->row_buf + 1, png_ptr->prev_row + 1,
++       png_ptr->row_buf + 1, align16(png_ptr->prev_row) + 1,
+        (int)(png_ptr->row_buf[0]));
+ 
+-   png_memcpy_check(png_ptr, png_ptr->prev_row, png_ptr->row_buf,
++   png_memcpy_check(png_ptr, align16(png_ptr->prev_row), png_ptr->row_buf,
+       png_ptr->rowbytes + 1);
+ 
+    if (png_ptr->transformations || (png_ptr->flags&PNG_FLAG_STRIP_ALPHA))
+@@ -1143,7 +1150,7 @@
+    if (png_ptr->interlaced)
+    {
+       png_ptr->row_number = 0;
+-      png_memset_check(png_ptr, png_ptr->prev_row, 0,
++      png_memset_check(png_ptr, align16(png_ptr->prev_row), 0,
+          png_ptr->rowbytes + 1);
+       do
+       {
+Index: libpng/pngread.c
+===================================================================
+--- libpng.orig/pngread.c	2012-12-30 19:20:04.000000000 +0200
++++ libpng/pngread.c	2012-12-30 19:22:29.000000000 +0200
+@@ -19,6 +19,13 @@
+ #include "png.h"
+ #ifdef PNG_READ_SUPPORTED
+ 
++#if defined(__ARM_NEON__)
++png_bytep
++align16(png_bytep row_buf);
++#else
++#define align16(row_buf) row_buf
++#endif
++
+ /* Create a PNG structure for reading, and allocate any memory needed. */
+ png_structp PNGAPI
+ png_create_read_struct(png_const_charp user_png_ver, png_voidp error_ptr,
+@@ -347,10 +354,10 @@
+ png_read_info(png_structp png_ptr, png_infop info_ptr)
+ {
+    png_debug(1, "in png_read_info");
+- 
++
+    if (png_ptr == NULL || info_ptr == NULL)
+       return;
+- 
++
+    /* If we haven't checked all of the PNG signature bytes, do so now. */
+    if (png_ptr->sig_bytes < 8)
+    {
+@@ -557,7 +564,7 @@
+ png_read_update_info(png_structp png_ptr, png_infop info_ptr)
+ {
+    png_debug(1, "in png_read_update_info");
+- 
++
+    if (png_ptr == NULL)
+       return;
+    if (!(png_ptr->flags & PNG_FLAG_ROW_INIT))
+@@ -579,7 +586,7 @@
+ png_start_read_image(png_structp png_ptr)
+ {
+    png_debug(1, "in png_start_read_image");
+- 
++
+    if (png_ptr == NULL)
+       return;
+    if (!(png_ptr->flags & PNG_FLAG_ROW_INIT))
+@@ -596,10 +603,10 @@
+       0xff};
+    PNG_CONST int png_pass_mask[7] = {0x80, 0x08, 0x88, 0x22, 0xaa, 0x55, 0xff};
+    int ret;
+- 
++
+    if (png_ptr == NULL)
+       return;
+- 
++
+    png_debug2(1, "in png_read_row (row %lu, pass %d)",
+       png_ptr->row_number, png_ptr->pass);
+ 
+@@ -769,10 +776,10 @@
+ 
+    if (png_ptr->row_buf[0])
+    png_read_filter_row(png_ptr, &(png_ptr->row_info),
+-      png_ptr->row_buf + 1, png_ptr->prev_row + 1,
++      png_ptr->row_buf + 1, align16(png_ptr->prev_row) + 1,
+       (int)(png_ptr->row_buf[0]));
+ 
+-   png_memcpy_check(png_ptr, png_ptr->prev_row, png_ptr->row_buf,
++   png_memcpy_check(png_ptr, align16(png_ptr->prev_row), png_ptr->row_buf,
+       png_ptr->rowbytes + 1);
+ 
+ #ifdef PNG_MNG_FEATURES_SUPPORTED
+@@ -856,7 +863,7 @@
+    png_bytepp dp;
+ 
+    png_debug(1, "in png_read_rows");
+- 
++
+    if (png_ptr == NULL)
+       return;
+    rp = row;
+@@ -907,7 +914,7 @@
+    png_bytepp rp;
+ 
+    png_debug(1, "in png_read_image");
+- 
++
+    if (png_ptr == NULL)
+       return;
+ 
+@@ -945,7 +952,7 @@
+ png_read_end(png_structp png_ptr, png_infop info_ptr)
+ {
+    png_debug(1, "in png_read_end");
+- 
++
+    if (png_ptr == NULL)
+       return;
+    png_crc_finish(png_ptr, 0); /* Finish off CRC from last IDAT chunk */
+@@ -1127,7 +1134,7 @@
+ #endif
+ 
+    png_debug(1, "in png_destroy_read_struct");
+- 
++
+    if (png_ptr_ptr != NULL)
+       png_ptr = *png_ptr_ptr;
+    if (png_ptr == NULL)
+@@ -1203,7 +1210,7 @@
+ #endif
+ 
+    png_debug(1, "in png_read_destroy");
+- 
++
+    if (info_ptr != NULL)
+       png_info_destroy(png_ptr, info_ptr);
  
