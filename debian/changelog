@@ -1,7 +1,7 @@
 libpng (1.2.49-1maemo1+0cssu2) unstable; urgency=low
 
-  * Add ARM NEON optimization patch from
-    https://codereview.chromium.org/5141003/patch/1/2
+  * Backport ARM NEON optimizations from
+    libpng.sourceforge.net - ~30% faster decoding
 
  -- Ludek Finstrle <luf@pzkagis.cz>  Fri, 28 Dec 2012 20:30:40 +0100
 
