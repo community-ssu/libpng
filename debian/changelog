@@ -1,3 +1,9 @@
+libpng (1.2.49-1maemo1+0cssu2+thumb0) unstable; urgency=low
+
+  * Thumb2 compiled
+
+ -- Ivaylo Dimitrov <freemangordon@abv.bg>  Tue, 31 Dec 2012 12:26:43 +0200
+
 libpng (1.2.49-1maemo1+0cssu2) unstable; urgency=low
 
   * Backport ARM NEON optimizations from
