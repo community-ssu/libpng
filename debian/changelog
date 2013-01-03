@@ -1,8 +1,13 @@
+libpng (1.2.49-1maemo1+0cssu3) unstable; urgency=low
+
+  * add APNG support
+
+ -- Ivaylo Dimitrov <freemangordon@abv.bg>  Thu, 03 Jan 2013 21:06:12 +0200
+
 libpng (1.2.49-1maemo1+0cssu2) unstable; urgency=low
 
   * Backport ARM NEON optimizations from
     libpng.sourceforge.net - ~30% faster decoding
-  * add APNG support
 
  -- Ludek Finstrle <luf@pzkagis.cz>  Fri, 28 Dec 2012 20:30:40 +0100
 
