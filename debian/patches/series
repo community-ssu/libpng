@@ -1,4 +1,8 @@
 01-legacy.patch
+CVE-2015-7981.patch
+Prevent-writing-over-length-PLTE-chunk-Cosm.patch
+Fixed-new-bug-with-CRC-error-after-reading-.patch
+
 51-maemo-pngconf.patch
 52-maemo-read_filter-neon.patch
 libpng-1.2.49-apng.patch
