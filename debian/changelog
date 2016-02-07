@@ -1,3 +1,21 @@
+libpng (1.2.49-1maemo1+0cssu4) unstable; urgency=high
+
+  * Add CVE-2015-7981.patch patch.
+    CVE-2015-7981: Out-of-bounds read in png_convert_to_rfc1123.
+    (Closes: #803078)
+  * Add Prevent-writing-over-length-PLTE-chunk-Cosm.patch patch.
+    CVE-2015-8126: Multiple buffer overflows in the png_set_PLTE and
+    png_get_PLTE functions. (Closes: #805113)
+  * Add Fixed-new-bug-with-CRC-error-after-reading-.patch patch.
+    Fixed new bug with CRC error after reading an over-length palette.
+  * Add patches to address CVE-2015-8472.
+    CVE-2015-8472: Incomplete fix for callers on png_set_PLTE.
+    (Closes: #807112)
+  * Add CVE-2015-8540.patch patch.
+    CVE-2015-8540: underflow read in png_check_keyword(). (Closes: #807694)
+
+ -- Ludek Finstrle <luf@seznam.cz>  Sun,  7 Feb 2016 23:53:05 +0100
+
 libpng (1.2.49-1maemo1+0cssu3) unstable; urgency=low
 
   * add APNG support
@@ -9,14 +27,14 @@ libpng (1.2.49-1maemo1+0cssu2) unstable; urgency=low
   * Backport ARM NEON optimizations from
     libpng.sourceforge.net - ~30% faster decoding
 
- -- Ludek Finstrle <luf@pzkagis.cz>  Fri, 28 Dec 2012 20:30:40 +0100
+ -- Ludek Finstrle <luf@seznam.cz>  Fri, 28 Dec 2012 20:30:40 +0100
 
 libpng (1.2.49-1maemo1+0cssu1) unstable; urgency=high
 
   * Repackage for maemo
   * Several CVE fixes since last maemo package (1.2.37-1)
 
- -- Ludek Finstrle <luf@pzkagis.cz>  Wed, 19 Dec 2012 23:06:31 +0100
+ -- Ludek Finstrle <luf@seznam.cz>  Wed, 19 Dec 2012 23:06:31 +0100
 
 libpng (1.2.49-1) unstable; urgency=high
 
