@@ -3,7 +3,7 @@ Section: libs
 Priority: optional
 Maintainer: Ludek Finstrle <luf@seznam.cz>
 XSBC-Original-Maintainer: Anibal Monsalve Salazar <anibal@debian.org>
-Build-Depends: debhelper (>= 5), libtool, automake, autoconf, quilt (>= 0.40), zlib1g-dev, mawk
+Build-Depends: debhelper (>= 5), libtool, automake, autoconf, quilt (>= 0.40), zlib1g-dev
 Standards-Version: 3.8.0
 Homepage: http://libpng.org/pub/png/libpng.html
 
